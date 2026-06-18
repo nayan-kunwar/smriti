@@ -2,11 +2,13 @@ FROM node:22-alpine AS build
 ARG WORKER=embedding-worker
 RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
 WORKDIR /repo
+ENV CI=true
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json nx.json ./
 COPY apps/${WORKER}/package.json apps/${WORKER}/tsconfig.json apps/${WORKER}/
 COPY libs libs
 
+RUN echo "node-linker=hoisted" >> .npmrc
 RUN pnpm install --frozen-lockfile
 COPY apps/${WORKER}/src apps/${WORKER}/src
 RUN pnpm -C apps/${WORKER} build
