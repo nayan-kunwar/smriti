@@ -1,8 +1,10 @@
 import { Controller, Get, Inject, ServiceUnavailableException } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { pingDb, type Db } from '@smriti/postgres';
 import type { RedisClient } from '@smriti/redis';
 import { TOKENS } from '../tokens';
 
+@SkipThrottle()
 @Controller('health')
 export class HealthController {
   constructor(

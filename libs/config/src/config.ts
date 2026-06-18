@@ -26,6 +26,24 @@ const envSchema = z.object({
   EMBEDDING_DIMENSIONS: z.coerce.number().int().positive().default(1536),
   OPENAI_API_KEY: z.string().optional(),
 
+  LLM_PROVIDER: z.enum(['openai', 'mock']).default('mock'),
+  LLM_MODEL: z.string().default('gpt-4o-mini'),
+
+  API_KEY: z.string().optional(),
+  RATE_LIMIT_TTL_MS: z.coerce.number().int().positive().default(60_000),
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+
+  WORKER_METRICS_PORT: z.coerce.number().int().nonnegative().default(0),
+
+  SCHEDULE_SUMMARIZE_MS: z.coerce.number().int().positive().default(5 * 60 * 1000),
+  SCHEDULE_CONSOLIDATE_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
+  SCHEDULE_PROFILE_MS: z.coerce.number().int().positive().default(30 * 60 * 1000),
+  SCHEDULE_DECAY_MS: z.coerce.number().int().positive().default(60 * 60 * 1000),
+  MEMORY_DECAY_FACTOR: z.coerce.number().positive().max(1).default(0.95),
+  MEMORY_DECAY_AGE_DAYS: z.coerce.number().int().positive().default(7),
+  MEMORY_ARCHIVE_THRESHOLD: z.coerce.number().positive().max(1).default(0.05),
+  CONSOLIDATION_SIMILARITY_THRESHOLD: z.coerce.number().positive().max(1).default(0.92),
+
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().default('http://localhost:4318'),
   OTEL_SERVICE_NAME: z.string().default('smriti'),
 });
@@ -44,6 +62,29 @@ export interface AppConfig {
     dimensions: number;
     openaiApiKey?: string;
   };
+  llm: {
+    provider: RawEnv['LLM_PROVIDER'];
+    model: string;
+    openaiApiKey?: string;
+  };
+  auth: {
+    apiKey?: string;
+    enforceApiKey: boolean;
+  };
+  rateLimit: { ttlMs: number; max: number };
+  workerMetricsPort: number;
+  scheduler: {
+    summarizeMs: number;
+    consolidateMs: number;
+    profileMs: number;
+    decayMs: number;
+  };
+  memory: {
+    decayFactor: number;
+    decayAgeDays: number;
+    archiveThreshold: number;
+    consolidationSimilarityThreshold: number;
+  };
   otel: { exporterUrl: string; serviceName: string };
 }
 
@@ -61,6 +102,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   }
 
   const e = parsed.data;
+  const enforceApiKey = e.NODE_ENV === 'production';
+
+  if (enforceApiKey && !e.API_KEY) {
+    throw new Error('API_KEY is required when NODE_ENV=production');
+  }
+
   return {
     nodeEnv: e.NODE_ENV,
     http: { host: e.HTTP_HOST, port: e.HTTP_PORT },
@@ -76,6 +123,29 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       model: e.EMBEDDING_MODEL,
       dimensions: e.EMBEDDING_DIMENSIONS,
       openaiApiKey: e.OPENAI_API_KEY,
+    },
+    llm: {
+      provider: e.LLM_PROVIDER,
+      model: e.LLM_MODEL,
+      openaiApiKey: e.OPENAI_API_KEY,
+    },
+    auth: {
+      apiKey: e.API_KEY,
+      enforceApiKey,
+    },
+    rateLimit: { ttlMs: e.RATE_LIMIT_TTL_MS, max: e.RATE_LIMIT_MAX },
+    workerMetricsPort: e.WORKER_METRICS_PORT,
+    scheduler: {
+      summarizeMs: e.SCHEDULE_SUMMARIZE_MS,
+      consolidateMs: e.SCHEDULE_CONSOLIDATE_MS,
+      profileMs: e.SCHEDULE_PROFILE_MS,
+      decayMs: e.SCHEDULE_DECAY_MS,
+    },
+    memory: {
+      decayFactor: e.MEMORY_DECAY_FACTOR,
+      decayAgeDays: e.MEMORY_DECAY_AGE_DAYS,
+      archiveThreshold: e.MEMORY_ARCHIVE_THRESHOLD,
+      consolidationSimilarityThreshold: e.CONSOLIDATION_SIMILARITY_THRESHOLD,
     },
     otel: { exporterUrl: e.OTEL_EXPORTER_OTLP_ENDPOINT, serviceName: e.OTEL_SERVICE_NAME },
   };

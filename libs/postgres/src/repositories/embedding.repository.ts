@@ -48,4 +48,34 @@ export class PostgresEmbeddingRepository {
       .executeTakeFirst();
     return Boolean(row);
   }
+
+  async listByMemoryIds(memoryIds: string[]): Promise<Map<string, number[]>> {
+    if (memoryIds.length === 0) return new Map();
+    const rows = await this.db
+      .selectFrom('memory_embeddings')
+      .select(['memory_id', 'embedding'])
+      .where('memory_id', 'in', memoryIds)
+      .execute();
+
+    const out = new Map<string, number[]>();
+    for (const row of rows) {
+      out.set(row.memory_id, parseVector(row.embedding));
+    }
+    return out;
+  }
+}
+
+function parseVector(value: unknown): number[] {
+  if (Array.isArray(value)) {
+    return value.map(Number);
+  }
+  if (typeof value === 'string') {
+    return value
+      .replace(/^\[/, '')
+      .replace(/\]$/, '')
+      .split(',')
+      .map((part) => Number(part.trim()))
+      .filter((n) => !Number.isNaN(n));
+  }
+  return [];
 }

@@ -19,6 +19,17 @@ export interface MemoryDTO {
   updatedAt: string;
 }
 
+export interface UserDTO {
+  id: string;
+  name: string | null;
+  createdAt: string;
+}
+
+export interface CreateUserRequest {
+  id?: string;
+  name?: string;
+}
+
 export interface CreateMemoryRequest {
   userId: string;
   type: MemoryType;
@@ -30,6 +41,7 @@ export interface RetrievalRequest {
   userId: string;
   query: string;
   limit?: number;
+  sessionId?: string;
 }
 
 export interface RetrievedMemory {

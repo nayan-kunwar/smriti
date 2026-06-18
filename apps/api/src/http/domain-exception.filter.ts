@@ -1,6 +1,6 @@
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpException } from '@nestjs/common';
 import { UnauthorizedError } from '@smriti/auth';
-import { DomainError, MemoryNotFoundError, ValidationError } from '@smriti/memory-core';
+import { DomainError, MemoryNotFoundError, ProfileNotFoundError, UserAlreadyExistsError, UserNotFoundError, ValidationError } from '@smriti/memory-core';
 import type { FastifyReply } from 'fastify';
 
 /** Maps domain and HTTP exceptions to consistent JSON error responses. */
@@ -21,6 +21,12 @@ export class DomainExceptionFilter implements ExceptionFilter {
     }
     if (exception instanceof MemoryNotFoundError) {
       return { status: 404, body: { error: exception.code, message: exception.message } };
+    }
+    if (exception instanceof UserNotFoundError || exception instanceof ProfileNotFoundError) {
+      return { status: 404, body: { error: exception.code, message: exception.message } };
+    }
+    if (exception instanceof UserAlreadyExistsError) {
+      return { status: 409, body: { error: exception.code, message: exception.message } };
     }
     if (exception instanceof ValidationError) {
       return { status: 400, body: { error: exception.code, message: exception.message } };

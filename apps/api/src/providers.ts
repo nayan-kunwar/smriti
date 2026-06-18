@@ -3,13 +3,23 @@ import { createEmbeddingProvider } from '@smriti/embedding';
 import { createKafka, KafkaProducer } from '@smriti/kafka';
 import {
   CreateMemoryUseCase,
+  CreateUserUseCase,
   DeleteMemoryUseCase,
+  GetUserProfileUseCase,
+  GetUserUseCase,
   ListMemoriesUseCase,
   systemClock,
+  UpdateMemoryUseCase,
   type EventPublisher,
 } from '@smriti/memory-core';
 import { createLogger, getMetrics } from '@smriti/observability';
-import { createDb, PostgresMemoryRepository, PostgresVectorSearch } from '@smriti/postgres';
+import {
+  createDb,
+  PostgresMemoryRepository,
+  PostgresProfileRepository,
+  PostgresUserRepository,
+  PostgresVectorSearch,
+} from '@smriti/postgres';
 import { ContextCache, createRedis, WorkingMemoryStore } from '@smriti/redis';
 import { RetrieveContextUseCase } from '@smriti/retrieval-core';
 import type { Provider } from '@nestjs/common';
@@ -66,6 +76,16 @@ export function buildProviders(): Provider[] {
       useFactory: (db: ReturnType<typeof createDb>['db']) => new PostgresMemoryRepository(db),
     },
     {
+      provide: TOKENS.UserRepository,
+      inject: [TOKENS.Db],
+      useFactory: (db: ReturnType<typeof createDb>['db']) => new PostgresUserRepository(db),
+    },
+    {
+      provide: TOKENS.ProfileRepository,
+      inject: [TOKENS.Db],
+      useFactory: (db: ReturnType<typeof createDb>['db']) => new PostgresProfileRepository(db),
+    },
+    {
       provide: TOKENS.ContextCache,
       inject: [TOKENS.Redis],
       useFactory: (redis: ReturnType<typeof createRedis>) => new ContextCache(redis),
@@ -76,14 +96,53 @@ export function buildProviders(): Provider[] {
       useFactory: (redis: ReturnType<typeof createRedis>) => new WorkingMemoryStore(redis),
     },
     {
+      provide: TOKENS.CreateUserUseCase,
+      inject: [TOKENS.UserRepository],
+      useFactory: (users: PostgresUserRepository) =>
+        new CreateUserUseCase({
+          users,
+          clock: systemClock,
+          ids: { next: () => uuid() },
+        }),
+    },
+    {
+      provide: TOKENS.GetUserUseCase,
+      inject: [TOKENS.UserRepository],
+      useFactory: (users: PostgresUserRepository) => new GetUserUseCase(users),
+    },
+    {
+      provide: TOKENS.GetUserProfileUseCase,
+      inject: [TOKENS.ProfileRepository],
+      useFactory: (profiles: PostgresProfileRepository) => new GetUserProfileUseCase(profiles),
+    },
+    {
       provide: TOKENS.CreateMemoryUseCase,
-      inject: [TOKENS.MemoryRepository, TOKENS.KafkaProducer],
-      useFactory: (memories: PostgresMemoryRepository, producer: KafkaProducer) =>
+      inject: [TOKENS.MemoryRepository, TOKENS.KafkaProducer, TOKENS.ContextCache],
+      useFactory: (
+        memories: PostgresMemoryRepository,
+        producer: KafkaProducer,
+        cache: ContextCache,
+      ) =>
         new CreateMemoryUseCase({
           memories,
           events: toEventPublisher(producer),
           clock: systemClock,
           ids: { next: () => uuid() },
+          cache,
+        }),
+    },
+    {
+      provide: TOKENS.UpdateMemoryUseCase,
+      inject: [TOKENS.MemoryRepository, TOKENS.KafkaProducer, TOKENS.ContextCache],
+      useFactory: (
+        memories: PostgresMemoryRepository,
+        producer: KafkaProducer,
+        cache: ContextCache,
+      ) =>
+        new UpdateMemoryUseCase({
+          memories,
+          events: toEventPublisher(producer),
+          cache,
         }),
     },
     {
@@ -93,22 +152,28 @@ export function buildProviders(): Provider[] {
     },
     {
       provide: TOKENS.DeleteMemoryUseCase,
-      inject: [TOKENS.MemoryRepository, TOKENS.KafkaProducer],
-      useFactory: (memories: PostgresMemoryRepository, producer: KafkaProducer) =>
-        new DeleteMemoryUseCase({ memories, events: toEventPublisher(producer) }),
+      inject: [TOKENS.MemoryRepository, TOKENS.KafkaProducer, TOKENS.ContextCache],
+      useFactory: (
+        memories: PostgresMemoryRepository,
+        producer: KafkaProducer,
+        cache: ContextCache,
+      ) =>
+        new DeleteMemoryUseCase({ memories, events: toEventPublisher(producer), cache }),
     },
     {
       provide: TOKENS.RetrieveContextUseCase,
-      inject: [TOKENS.EmbeddingProvider, TOKENS.Db, TOKENS.ContextCache],
+      inject: [TOKENS.EmbeddingProvider, TOKENS.Db, TOKENS.ContextCache, TOKENS.WorkingMemory],
       useFactory: (
         embedder: ReturnType<typeof createEmbeddingProvider>,
         db: ReturnType<typeof createDb>['db'],
         cache: ContextCache,
+        workingMemory: WorkingMemoryStore,
       ) =>
         new RetrieveContextUseCase({
           embedder: { embed: (text) => embedder.embed(text) },
           vectorSearch: new PostgresVectorSearch(db),
           cache,
+          workingMemory,
         }),
     },
   ];

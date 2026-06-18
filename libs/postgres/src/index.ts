@@ -3,6 +3,7 @@ export * from './connection';
 export * from './migrator';
 export * from './health';
 export * from './repositories/memory.repository';
+export * from './repositories/user.repository';
 export * from './repositories/embedding.repository';
 export * from './repositories/vector-search';
 export * from './repositories/summary.repository';

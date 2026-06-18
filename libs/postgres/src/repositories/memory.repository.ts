@@ -62,6 +62,43 @@ export class PostgresMemoryRepository implements MemoryRepository {
     return rows.map(toDomain);
   }
 
+  async updateContent(id: string, content: string): Promise<Memory> {
+    const now = new Date();
+    const row = await this.db
+      .updateTable('memories')
+      .set({ content, updated_at: now })
+      .where('id', '=', id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return toDomain(row);
+  }
+
+  async applyDecayImportance(cutoffDate: Date, decayFactor: number): Promise<number> {
+    const result = await this.db
+      .updateTable('memories')
+      .set((eb) => ({
+        importance: eb('importance', '*', decayFactor),
+        updated_at: new Date(),
+      }))
+      .where('deleted_at', 'is', null)
+      .where('status', '=', 'active')
+      .where('created_at', '<', cutoffDate)
+      .where('importance', '>', 0.01)
+      .executeTakeFirst();
+    return Number(result.numUpdatedRows ?? 0);
+  }
+
+  async archiveLowImportance(threshold: number): Promise<number> {
+    const result = await this.db
+      .updateTable('memories')
+      .set({ status: 'archived', updated_at: new Date() })
+      .where('deleted_at', 'is', null)
+      .where('status', '=', 'active')
+      .where('importance', '<', threshold)
+      .executeTakeFirst();
+    return Number(result.numUpdatedRows ?? 0);
+  }
+
   async softDelete(id: string): Promise<void> {
     const now = new Date();
     await this.db

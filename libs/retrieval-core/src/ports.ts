@@ -28,6 +28,21 @@ export interface RetrievalCachePort {
   set(userId: string, query: string, result: RetrievalResult): Promise<void>;
 }
 
+/** Session-scoped conversation turns for working memory enrichment. */
+export interface WorkingMemoryPort {
+  list(sessionId: string): Promise<Array<{ role: string; content: string }>>;
+}
+
+/** Session-scoped conversation turns from Redis working memory. */
+export interface WorkingMemoryPort {
+  list(sessionId: string): Promise<Array<{ role: string; content: string }>>;
+}
+
+/** Session-scoped conversation turns for working memory enrichment. */
+export interface WorkingMemoryPort {
+  list(sessionId: string): Promise<Array<{ role: string; content: string }>>;
+}
+
 /** Injectable clock for deterministic recency math in tests. */
 export interface Clock {
   now(): Date;

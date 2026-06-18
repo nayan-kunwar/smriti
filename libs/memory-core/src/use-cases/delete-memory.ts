@@ -1,9 +1,10 @@
 import { MemoryNotFoundError } from '../errors';
-import type { EventPublisher, MemoryRepository } from '../ports';
+import type { ContextCacheInvalidator, EventPublisher, MemoryRepository } from '../ports';
 
 export interface DeleteMemoryDeps {
   memories: MemoryRepository;
   events: EventPublisher;
+  cache?: ContextCacheInvalidator;
 }
 
 /**
@@ -27,5 +28,9 @@ export class DeleteMemoryUseCase {
       payload: { memoryId: id, userId: existing.userId },
       traceparent,
     });
+
+    if (this.deps.cache) {
+      await this.deps.cache.invalidateUser(existing.userId);
+    }
   }
 }

@@ -90,16 +90,25 @@ You should see:
 [migrate] done (1 applied)
 ```
 
-## 4. Seed a test user
+## 4. Create a test user
 
-Memories reference `users.id` (foreign key). Create a dev user once:
+Create a dev user via the API (no manual SQL required):
 
 ```bash
-docker exec smriti-postgres-1 psql -U smriti -d smriti -c \
-  "INSERT INTO users (id, name) VALUES ('22222222-2222-2222-2222-222222222222', 'Local Dev') ON CONFLICT DO NOTHING;"
+curl -X POST http://localhost:3000/users \
+  -H "content-type: application/json" \
+  -d '{"name":"Local Dev","id":"22222222-2222-2222-2222-222222222222"}'
 ```
 
-Use this UUID in API requests as `x-user-id`.
+Or omit `id` to let the server generate one:
+
+```bash
+curl -X POST http://localhost:3000/users \
+  -H "content-type: application/json" \
+  -d '{"name":"Local Dev"}'
+```
+
+Use the returned `user.id` in API requests as `x-user-id`.
 
 ## 5. Start application services
 

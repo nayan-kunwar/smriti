@@ -27,6 +27,7 @@
       "@smriti/embedding": ["libs/embedding/src/index.ts"],
       "@smriti/events": ["libs/events/src/index.ts"],
       "@smriti/kafka": ["libs/kafka/src/index.ts"],
+      "@smriti/llm": ["libs/llm/src/index.ts"],
       "@smriti/memory-core": ["libs/memory-core/src/index.ts"],
       "@smriti/observability": ["libs/observability/src/index.ts"],
       "@smriti/postgres": ["libs/postgres/src/index.ts"],

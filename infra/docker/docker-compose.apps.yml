@@ -1,0 +1,120 @@
+name: smriti-apps
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - ../../.env
+    environment:
+      POSTGRES_URL: postgres://smriti:smriti@postgres:5432/smriti
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    networks:
+      - smriti
+
+  embedding-worker:
+    build:
+      context: ../..
+      dockerfile: apps/worker.Dockerfile
+      args:
+        WORKER: embedding-worker
+    env_file:
+      - ../../.env
+    environment:
+      POSTGRES_URL: postgres://smriti:smriti@postgres:5432/smriti
+      KAFKA_BROKERS: kafka:9092
+      WORKER_METRICS_PORT: 9101
+    ports:
+      - '9101:9101'
+    depends_on:
+      - api
+    networks:
+      - smriti
+
+  importance-worker:
+    build:
+      context: ../..
+      dockerfile: apps/worker.Dockerfile
+      args:
+        WORKER: importance-worker
+    env_file:
+      - ../../.env
+    environment:
+      POSTGRES_URL: postgres://smriti:smriti@postgres:5432/smriti
+      KAFKA_BROKERS: kafka:9092
+      WORKER_METRICS_PORT: 9102
+    networks:
+      - smriti
+
+  summarizer-worker:
+    build:
+      context: ../..
+      dockerfile: apps/worker.Dockerfile
+      args:
+        WORKER: summarizer-worker
+    env_file:
+      - ../../.env
+    environment:
+      POSTGRES_URL: postgres://smriti:smriti@postgres:5432/smriti
+      KAFKA_BROKERS: kafka:9092
+    networks:
+      - smriti
+
+  consolidation-worker:
+    build:
+      context: ../..
+      dockerfile: apps/worker.Dockerfile
+      args:
+        WORKER: consolidation-worker
+    env_file:
+      - ../../.env
+    environment:
+      POSTGRES_URL: postgres://smriti:smriti@postgres:5432/smriti
+      KAFKA_BROKERS: kafka:9092
+    networks:
+      - smriti
+
+  profile-worker:
+    build:
+      context: ../..
+      dockerfile: apps/worker.Dockerfile
+      args:
+        WORKER: profile-worker
+    env_file:
+      - ../../.env
+    environment:
+      POSTGRES_URL: postgres://smriti:smriti@postgres:5432/smriti
+      KAFKA_BROKERS: kafka:9092
+    networks:
+      - smriti
+
+  scheduler:
+    build:
+      context: ../..
+      dockerfile: apps/worker.Dockerfile
+      args:
+        WORKER: scheduler
+    env_file:
+      - ../../.env
+    environment:
+      POSTGRES_URL: postgres://smriti:smriti@postgres:5432/smriti
+      KAFKA_BROKERS: kafka:9092
+    networks:
+      - smriti
+
+networks:
+  smriti:
+    external: true
+    name: smriti_default

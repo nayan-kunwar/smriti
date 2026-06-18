@@ -19,3 +19,21 @@ export class ValidationError extends DomainError {
     super(message, 'VALIDATION_ERROR');
   }
 }
+
+export class UserNotFoundError extends DomainError {
+  constructor(id: string) {
+    super(`User ${id} was not found`, 'USER_NOT_FOUND');
+  }
+}
+
+export class UserAlreadyExistsError extends DomainError {
+  constructor(id: string) {
+    super(`User ${id} already exists`, 'USER_ALREADY_EXISTS');
+  }
+}
+
+export class ProfileNotFoundError extends DomainError {
+  constructor(userId: string) {
+    super(`Profile for user ${userId} was not found`, 'PROFILE_NOT_FOUND');
+  }
+}

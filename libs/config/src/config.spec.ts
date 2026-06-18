@@ -23,4 +23,10 @@ describe('loadConfig', () => {
     const config = loadConfig({ ...base, HTTP_PORT: '8080' } as NodeJS.ProcessEnv);
     expect(config.http.port).toBe(8080);
   });
+
+  it('requires API_KEY in production', () => {
+    expect(() =>
+      loadConfig({ ...base, NODE_ENV: 'production' } as NodeJS.ProcessEnv),
+    ).toThrow(/API_KEY is required/);
+  });
 });

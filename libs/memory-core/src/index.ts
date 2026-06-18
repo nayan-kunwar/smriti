@@ -1,4 +1,5 @@
 export * from './domain';
+export * from './user-domain';
 export * from './ports';
 export * from './errors';
 export * from './mappers';
@@ -6,6 +7,11 @@ export * from './importance';
 export * from './summarization';
 export * from './profile';
 export * from './consolidation';
+export * from './llm-tasks';
 export * from './use-cases/create-memory';
 export * from './use-cases/list-memories';
 export * from './use-cases/delete-memory';
+export * from './use-cases/update-memory';
+export * from './use-cases/create-user';
+export * from './use-cases/get-user';
+export * from './use-cases/get-user-profile';

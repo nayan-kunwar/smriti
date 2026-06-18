@@ -27,13 +27,58 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck
-        run: pnpm exec nx run-many -t typecheck
+        run: pnpm exec nx affected -t typecheck --base=origin/main --head=HEAD
 
       - name: Lint
-        run: pnpm exec nx run-many -t lint
+        run: pnpm exec nx affected -t lint --base=origin/main --head=HEAD
 
       - name: Test
-        run: pnpm exec nx run-many -t test
+        run: pnpm exec nx affected -t test --base=origin/main --head=HEAD
 
       - name: Build
-        run: pnpm exec nx run-many -t build
+        run: pnpm exec nx affected -t build --base=origin/main --head=HEAD
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start infrastructure
+        run: docker compose -f infra/docker/docker-compose.yml up -d --wait
+
+      - name: Run migrations
+        run: |
+          export POSTGRES_URL=postgres://smriti:smriti@localhost:55432/smriti
+          export REDIS_URL=redis://localhost:6379
+          export KAFKA_BROKERS=localhost:9092
+          pnpm db:migrate
+
+      - name: Integration tests
+        env:
+          SMRITI_INTEGRATION: '1'
+          POSTGRES_URL: postgres://smriti:smriti@localhost:55432/smriti
+        run: pnpm exec nx run @smriti/postgres:test
+
+  docker-build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -f apps/api/Dockerfile .
+
+      - name: Build embedding-worker image
+        run: docker build -f apps/worker.Dockerfile --build-arg WORKER=embedding-worker .

@@ -5,9 +5,10 @@ import {
   type EventEnvelope,
   type ScheduleUserPayload,
 } from '@smriti/events';
+import { createLlmProvider } from '@smriti/llm';
 import { ConsumerRuntime, createKafka, KafkaProducer } from '@smriti/kafka';
-import { buildRollingSummary } from '@smriti/memory-core';
-import { createLogger, getMetrics, registerShutdown } from '@smriti/observability';
+import { buildSummary } from '@smriti/memory-core';
+import { createLogger, getMetrics, registerShutdown, startMetricsServer } from '@smriti/observability';
 import {
   createDb,
   PostgresMemoryRepository,
@@ -24,11 +25,13 @@ async function main(): Promise<void> {
   const config = loadConfig();
   const logger = createLogger({ service: `${config.otel.serviceName}-summarizer-worker` });
   const metrics = getMetrics();
+  const metricsServer = startMetricsServer(metrics, config.workerMetricsPort);
 
   const { db } = createDb({ url: config.postgres.url, poolSize: config.postgres.poolSize });
   const memories = new PostgresMemoryRepository(db);
   const summaries = new PostgresSummaryRepository(db);
   const processed = new PostgresProcessedEventsRepository(db);
+  const llm = config.llm.provider === 'mock' ? null : createLlmProvider(config.llm);
 
   const kafka = createKafka({ brokers: config.kafka.brokers, clientId: config.kafka.clientId });
   const producer = new KafkaProducer(kafka);
@@ -45,7 +48,10 @@ async function main(): Promise<void> {
     handler: async (event) => {
       const { userId } = event.payload;
       const recent = await memories.listByUser(userId, { limit: 100, offset: 0 });
-      const summary = buildRollingSummary(recent.map((memory) => memory.content));
+      const summary = await buildSummary(
+        recent.map((memory) => memory.content),
+        llm,
+      );
       const summaryId = uuid();
 
       await summaries.insert({ id: summaryId, userId, summary, summaryType: 'rolling' });
@@ -63,6 +69,7 @@ async function main(): Promise<void> {
   registerShutdown(async () => {
     await runtime.stop();
     await producer.disconnect();
+    metricsServer?.close();
     await db.destroy();
   }, logger);
 }

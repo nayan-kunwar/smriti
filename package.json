@@ -26,7 +26,8 @@
     "dev:consolidation-worker": "pnpm -C apps/consolidation-worker dev",
     "dev:profile-worker": "pnpm -C apps/profile-worker dev",
     "dev:scheduler": "pnpm -C apps/scheduler dev",
-    "dev:workers": "concurrently -n embedding,importance,summarizer,consolidation,profile,scheduler -c blue,green,yellow,magenta,cyan,white \"pnpm dev:embedding-worker\" \"pnpm dev:importance-worker\" \"pnpm dev:summarizer-worker\" \"pnpm dev:consolidation-worker\" \"pnpm dev:profile-worker\" \"pnpm dev:scheduler\""
+    "dev:workers": "concurrently -n embedding,importance,summarizer,consolidation,profile,scheduler -c blue,green,yellow,magenta,cyan,white \"pnpm dev:embedding-worker\" \"pnpm dev:importance-worker\" \"pnpm dev:summarizer-worker\" \"pnpm dev:consolidation-worker\" \"pnpm dev:profile-worker\" \"pnpm dev:scheduler\"",
+    "e2e:smoke": "node scripts/e2e-smoke.mjs"
   },
   "devDependencies": {
     "@nx/eslint": "^20.3.0",

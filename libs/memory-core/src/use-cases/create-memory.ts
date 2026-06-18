@@ -1,13 +1,14 @@
 import type { CreateMemoryRequest, MemoryDTO } from '@smriti/shared-types';
 import { toMemoryDTO } from '../mappers';
 import { ValidationError } from '../errors';
-import type { Clock, EventPublisher, IdGenerator, MemoryRepository } from '../ports';
+import type { Clock, ContextCacheInvalidator, EventPublisher, IdGenerator, MemoryRepository } from '../ports';
 
 export interface CreateMemoryDeps {
   memories: MemoryRepository;
   events: EventPublisher;
   clock: Clock;
   ids: IdGenerator;
+  cache?: ContextCacheInvalidator;
 }
 
 /**
@@ -44,6 +45,10 @@ export class CreateMemoryUseCase {
       },
       traceparent,
     });
+
+    if (this.deps.cache) {
+      await this.deps.cache.invalidateUser(memory.userId);
+    }
 
     return toMemoryDTO(memory);
   }

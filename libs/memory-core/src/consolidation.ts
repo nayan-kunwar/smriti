@@ -69,3 +69,57 @@ export function findConsolidationGroups(
 
   return groups;
 }
+
+export interface EmbeddingConsolidationCandidate extends ConsolidationCandidate {
+  embedding: number[];
+}
+
+/** Cosine similarity between two equal-length vectors. */
+export function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length === 0 || a.length !== b.length) return 0;
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+/** Group near-duplicate memories by embedding cosine similarity. */
+export function findConsolidationGroupsByEmbedding(
+  candidates: EmbeddingConsolidationCandidate[],
+  threshold = 0.92,
+): ConsolidationGroup[] {
+  const assigned = new Array<boolean>(candidates.length).fill(false);
+  const groups: ConsolidationGroup[] = [];
+
+  for (let i = 0; i < candidates.length; i++) {
+    if (assigned[i]) continue;
+    const members = [i];
+    assigned[i] = true;
+
+    for (let j = i + 1; j < candidates.length; j++) {
+      if (assigned[j]) continue;
+      if (cosineSimilarity(candidates[i].embedding, candidates[j].embedding) >= threshold) {
+        members.push(j);
+        assigned[j] = true;
+      }
+    }
+
+    if (members.length < 2) continue;
+
+    const survivor = members.reduce((best, idx) =>
+      candidates[idx].importance > candidates[best].importance ? idx : best,
+    );
+    groups.push({
+      survivingId: candidates[survivor].id,
+      mergedIds: members.filter((idx) => idx !== survivor).map((idx) => candidates[idx].id),
+    });
+  }
+
+  return groups;
+}

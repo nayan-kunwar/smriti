@@ -23,9 +23,21 @@ class InMemoryRepo implements MemoryRepository {
   async listByUser(): Promise<Memory[]> {
     return this.rows;
   }
+  async updateContent(id: string, content: string): Promise<Memory> {
+    const row = this.rows.find((r) => r.id === id);
+    if (!row) throw new Error('not found');
+    row.content = content;
+    return row;
+  }
   async softDelete(): Promise<void> {}
   async setImportance(): Promise<void> {}
   async setStatus(): Promise<void> {}
+  async applyDecayImportance(): Promise<number> {
+    return 0;
+  }
+  async distinctActiveUserIds(): Promise<string[]> {
+    return [];
+  }
 }
 
 class CapturingPublisher implements EventPublisher {

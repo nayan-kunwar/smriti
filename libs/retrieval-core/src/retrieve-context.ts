@@ -1,11 +1,12 @@
 import { rankCandidates, type RankingWeights } from '@smriti/ranking';
 import type { RetrievalRequest, RetrievalResult } from '@smriti/shared-types';
-import type { Clock, QueryEmbedder, RetrievalCachePort, VectorSearchPort } from './ports';
+import type { Clock, QueryEmbedder, RetrievalCachePort, VectorSearchPort, WorkingMemoryPort } from './ports';
 
 export interface RetrieveContextDeps {
   embedder: QueryEmbedder;
   vectorSearch: VectorSearchPort;
   cache?: RetrievalCachePort;
+  workingMemory?: WorkingMemoryPort;
   clock?: Clock;
   weights?: RankingWeights;
 }
@@ -76,6 +77,12 @@ export class RetrieveContextUseCase {
         score: Number(item.score.toFixed(6)),
       })),
     };
+
+    if (request.sessionId && this.deps.workingMemory) {
+      const turns = await this.deps.workingMemory.list(request.sessionId);
+      const sessionContext = turns.map((turn) => `${turn.role}: ${turn.content}`);
+      result.context = [...sessionContext, ...result.context];
+    }
 
     if (this.deps.cache) {
       await this.deps.cache.set(request.userId, query, result);

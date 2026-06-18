@@ -1,7 +1,8 @@
+import type { ProfileRepository } from '@smriti/memory-core';
 import type { UserProfile } from '@smriti/shared-types';
 import type { Db } from '../connection';
 
-export class PostgresProfileRepository {
+export class PostgresProfileRepository implements ProfileRepository {
   constructor(private readonly db: Db) {}
 
   async upsert(userId: string, profile: UserProfile): Promise<void> {
@@ -15,12 +16,18 @@ export class PostgresProfileRepository {
       .execute();
   }
 
-  async get(userId: string): Promise<UserProfile | null> {
+  async get(userId: string): Promise<{ profile: UserProfile; updatedAt: Date } | null> {
     const row = await this.db
       .selectFrom('user_profiles')
-      .select('profile')
+      .select(['profile', 'updated_at'])
       .where('user_id', '=', userId)
       .executeTakeFirst();
-    return row ? (row.profile as unknown as UserProfile) : null;
+    if (!row) {
+      return null;
+    }
+    return {
+      profile: row.profile as unknown as UserProfile,
+      updatedAt: new Date(row.updated_at),
+    };
   }
 }

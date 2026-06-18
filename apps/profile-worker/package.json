@@ -15,6 +15,7 @@
     "@smriti/config": "workspace:*",
     "@smriti/events": "workspace:*",
     "@smriti/kafka": "workspace:*",
+    "@smriti/llm": "workspace:*",
     "@smriti/memory-core": "workspace:*",
     "@smriti/observability": "workspace:*",
     "@smriti/postgres": "workspace:*"

@@ -2,7 +2,7 @@ import { loadConfig } from '@smriti/config';
 import { memoryCreatedSchema, TOPICS, type MemoryCreatedEvent } from '@smriti/events';
 import { ConsumerRuntime, createKafka, KafkaProducer } from '@smriti/kafka';
 import { scoreImportance } from '@smriti/memory-core';
-import { createLogger, getMetrics, registerShutdown } from '@smriti/observability';
+import { createLogger, getMetrics, registerShutdown, startMetricsServer } from '@smriti/observability';
 import {
   createDb,
   PostgresMemoryRepository,
@@ -15,6 +15,7 @@ async function main(): Promise<void> {
   const config = loadConfig();
   const logger = createLogger({ service: `${config.otel.serviceName}-importance-worker` });
   const metrics = getMetrics();
+  const metricsServer = startMetricsServer(metrics, config.workerMetricsPort);
 
   const { db } = createDb({ url: config.postgres.url, poolSize: config.postgres.poolSize });
   const memories = new PostgresMemoryRepository(db);
@@ -50,6 +51,7 @@ async function main(): Promise<void> {
   registerShutdown(async () => {
     await runtime.stop();
     await producer.disconnect();
+    metricsServer?.close();
     await db.destroy();
   }, logger);
 }
