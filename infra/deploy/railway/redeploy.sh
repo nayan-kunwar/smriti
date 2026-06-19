@@ -23,7 +23,7 @@ services=(
   smriti-consolidation-worker
   smriti-profile-worker
   # smriti-scheduler #deployed on another railway account, so we don't redeploy it here
-  smrit-api
+  smriti-api
 )
 
 for service in "${services[@]}"; do
