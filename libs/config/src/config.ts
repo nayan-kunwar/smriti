@@ -25,12 +25,13 @@ const envSchema = z.object({
   KAFKA_SASL_USERNAME: z.string().optional(),
   KAFKA_SASL_PASSWORD: z.string().optional(),
 
-  EMBEDDING_PROVIDER: z.enum(['openai', 'mock']).default('mock'),
+  EMBEDDING_PROVIDER: z.enum(['openai', 'gemini', 'mock']).default('mock'),
   EMBEDDING_MODEL: z.string().default('text-embedding-3-small'),
   EMBEDDING_DIMENSIONS: z.coerce.number().int().positive().default(1536),
   OPENAI_API_KEY: z.string().optional(),
+  GEMINI_API_KEY: z.string().optional(),
 
-  LLM_PROVIDER: z.enum(['openai', 'mock']).default('mock'),
+  LLM_PROVIDER: z.enum(['openai', 'gemini', 'mock']).default('mock'),
   LLM_MODEL: z.string().default('gpt-4o-mini'),
 
   API_KEY: z.string().optional(),
@@ -71,11 +72,13 @@ export interface AppConfig {
     model: string;
     dimensions: number;
     openaiApiKey?: string;
+    geminiApiKey?: string;
   };
   llm: {
     provider: RawEnv['LLM_PROVIDER'];
     model: string;
     openaiApiKey?: string;
+    geminiApiKey?: string;
   };
   auth: {
     apiKey?: string;
@@ -151,11 +154,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       model: e.EMBEDDING_MODEL,
       dimensions: e.EMBEDDING_DIMENSIONS,
       openaiApiKey: e.OPENAI_API_KEY,
+      geminiApiKey: e.GEMINI_API_KEY,
     },
     llm: {
       provider: e.LLM_PROVIDER,
       model: e.LLM_MODEL,
       openaiApiKey: e.OPENAI_API_KEY,
+      geminiApiKey: e.GEMINI_API_KEY,
     },
     auth: {
       apiKey: e.API_KEY,

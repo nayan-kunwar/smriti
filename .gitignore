@@ -33,3 +33,5 @@ Thumbs.db
 # Temp
 tmp/
 .cursor/
+notes
+postman
